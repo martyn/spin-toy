@@ -18,7 +18,7 @@ class SimpleLLM(nn.Module):
         return torch.sigmoid(self.linear(x))
 
 # Define the custom loss function as per the algorithm
-def spin_loss(model, old_model, x, y_true, y_synthetic):
+def spin_loss(model, opponent, x, y_true, y_synthetic):
     y_pred = model(x)
 
     # Compute log probabilities using current model parameters
@@ -27,7 +27,7 @@ def spin_loss(model, old_model, x, y_true, y_synthetic):
 
     # Compute log probabilities using previous model parameters (theta_t)
     with torch.no_grad():
-        y_pred_t = old_model(x)
+        y_pred_t = opponent(x)
         log_prob_true_previous = torch.log(y_pred_t) * y_true + torch.log(1 - y_pred_t) * (1 - y_true)
         log_prob_synthetic_previous = torch.log(y_pred_t) * y_synthetic + torch.log(1 - y_pred_t) * (1 - y_synthetic)
 
@@ -37,25 +37,25 @@ def spin_loss(model, old_model, x, y_true, y_synthetic):
 
 # Initialize the model, optimizer, and dataset as before
 model = SimpleLLM(input_dim, output_dim)
-old_model = SimpleLLM(input_dim, output_dim)
+opponent = SimpleLLM(input_dim, output_dim)
 optimizer = optim.Adam(model.parameters(), lr=1e-1)
 X = torch.randn(N, input_dim)
 y = torch.zeros_like(torch.randint(0, 2, (N, output_dim)).float())
 
 print("Pre", model(X).mean())
-old_model.load_state_dict(model.state_dict())
+opponent.load_state_dict(model.state_dict())
 # Training loop
 for t in range(T):
     
     X = torch.randn(N, input_dim)
     # Generate synthetic data y' using the current model parameters
-    y_synthetic = old_model(X).detach()
+    y_synthetic = opponent(X).detach()
     
     # Update the model parameters
     optimizer.zero_grad()
-    loss = spin_loss(model, old_model, X, y, y_synthetic)
+    loss = spin_loss(model, opponent, X, y, y_synthetic)
     # Save the current weights for theta_t
-    old_model.load_state_dict(model.state_dict())
+    opponent.load_state_dict(model.state_dict())
     loss.backward()
     optimizer.step()
     

@@ -1,0 +1,11 @@
+This is a toy implementation of SPIN from "Self-Play Fine-Tuning Converts Weak Language Models to Strong Language Models"
+
+The main part is the loss function.
+
+## License
+
+MIT
+
+## References
+
+* https://arxiv.org/pdf/2401.01335.pdf
